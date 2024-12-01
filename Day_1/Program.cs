@@ -9,23 +9,12 @@ var list2 = wholeStringConvertInput.Select(w => w.Item2).OrderBy(w => w).ToList(
 if (list1.Count != list2.Count)
     throw new Exception();
 
-int sum = 0;
-
-for(int i = 0; i < list1.Count; i++)
-{
-    sum += Math.Abs(list1[i] - list2[i]);
-}
+int sum = Enumerable.Range(0, list1.Count)
+    .Sum(i => Math.Abs(list1[i] - list2[i]));
 
 Console.WriteLine($"Part 1: {sum}");
 
-int similarity = 0;
-
-foreach (var item in list1)
-{
-    var count = list2.Count(w => w == item);
-
-    similarity += item * count;
-}
+int similarity = list1.Sum(w => w * list2.Count(ww => ww == w));
 
 Console.WriteLine($"Part 2: {similarity}");
 
