@@ -5,7 +5,7 @@ namespace SantasToolbox
     [System.Diagnostics.DebuggerDisplay("({Position.X}, {Position.Y})")]
     public class Tile : IWorldObject, INode, IEquatable<Tile>
     {
-        public Point Position { get; private set; }
+        public Point Position { get; }
         
         public virtual char CharRepresentation => this.IsTraversable ? '.' : '#';
 
@@ -26,9 +26,20 @@ namespace SantasToolbox
             this.cachedNeighbours = new Cached<List<Tile>>(() => fillTraversibleNeighboursFunc(this).ToList());
         }
 
-        public void Move(int x, int y)
+        public Tile(Tile origTile, bool newIsTraversable)
         {
-            this.Position = new Point(x, y);
+            this.Position = origTile.Position;
+            this.cachedNeighbours = origTile.cachedNeighbours;
+            this.cachedNeighbours.Reset();
+            this.IsTraversable = newIsTraversable;
+        }
+
+        public Tile(Tile origTile, Point newPosition)
+        {
+            this.Position = newPosition;
+            this.cachedNeighbours = origTile.cachedNeighbours;
+            this.cachedNeighbours.Reset();
+            this.IsTraversable = origTile.IsTraversable;
         }
 
         public bool Equals(Tile? other)
@@ -89,6 +100,21 @@ namespace SantasToolbox
                 }
                 y++;
             }
+
+            this.cachedMaxX = new Cached<int>(() => this.allTiles.Keys.Select(w => w.X).Max());
+            this.cachedMaxY = new Cached<int>(() => this.allTiles.Keys.Select(w => w.Y).Max());
+            this.cachedMinX = new Cached<int>(() => this.allTiles.Keys.Select(w => w.X).Min());
+            this.cachedMinY = new Cached<int>(() => this.allTiles.Keys.Select(w => w.Y).Min());
+        }
+
+        public TileWorld(TileWorld orig)
+        {
+            this.allowDiagnoalNeighbours = orig.allowDiagnoalNeighbours;
+            this.tileCreatingFunc = orig.tileCreatingFunc;
+            this.isValidNeighbourFunc = orig.isValidNeighbourFunc;
+            this.UnknownTileChar = orig.UnknownTileChar;
+
+            this.allTiles = orig.allTiles.ToDictionary();
 
             this.cachedMaxX = new Cached<int>(() => this.allTiles.Keys.Select(w => w.X).Max());
             this.cachedMaxY = new Cached<int>(() => this.allTiles.Keys.Select(w => w.Y).Max());
