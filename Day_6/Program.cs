@@ -1,38 +1,46 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics;
+using System.Drawing;
+
+var stopwatch = Stopwatch.StartNew();
 
 var input = new StringInputProvider("Input.txt").ToList();
 
 var world = new TileWorld(input, true, GetTile);
 
-var printer = new WorldPrinter();
-printer.Print(world);
+//var printer = new WorldPrinter();
+//printer.Print(world);
 
-var guard = GetGuardFromMap(input, world);
+var initialGuard = GetGuardFromMap(input, world);
 
-var initialGuardTile = guard.CurrentTile;
-var initialGuardOrientation = guard.CurrentOrientation;
+var initialGuardTile = initialGuard.CurrentTile;
+var initialGuardOrientation = initialGuard.CurrentOrientation;
 
-while (guard.Move()) ;
+while (initialGuard.Move()) ;
 
-Console.WriteLine($"Part 1: {guard.UniqueVisitedTilesCount}");
-
-var possibleObstacleLocations = guard.UniqueVisitedTiles.ToList();
+var possibleObstacleLocations = initialGuard.UniqueVisitedTiles.ToList();
 possibleObstacleLocations.Remove(initialGuardTile);
 
 var possibleObstacles = new List<Tile>();
 
-foreach (var location in possibleObstacleLocations)
+Parallel.ForEach(possibleObstacleLocations, location =>
 {
-    var worldWithObstacle = new ReplaceableTileWorld(world, new Tile(location, false));
-    guard = new Guard(initialGuardTile, initialGuardOrientation, worldWithObstacle);
-
-    if (guard.DetectLoop())
     {
-        possibleObstacles.Add(location);
-    }
-}
+        var worldWithObstacle = new ReplaceableTileWorld(world, new Tile(location, false));
+        var guard = new Guard(initialGuardTile, initialGuardOrientation, worldWithObstacle);
 
+        if (guard.DetectLoop())
+        {
+            possibleObstacles.Add(location);
+        }
+    }
+});
+
+var elapsedMS = stopwatch.ElapsedMilliseconds;
+
+Console.WriteLine($"Part 1: {initialGuard.UniqueVisitedTilesCount}");
 Console.WriteLine($"Part 2: {possibleObstacles.Count}");
+Console.WriteLine($"Total miliseconds took {elapsedMS}");
+
 
 Tile GetTile(int x, int y, char c, Func<Tile, IEnumerable<Tile>> func)
 {
