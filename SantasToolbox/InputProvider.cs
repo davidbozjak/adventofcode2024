@@ -16,7 +16,9 @@ public class InputProvider<T> : IEnumerator<T>, IEnumerable<T>
         this.fileStream = new Cached<StreamReader>(() => new StreamReader(filePath));
     }
 
-    public bool EndAtEmptyLine { get; set; } = true;
+    public bool EndAtEmptyLine { get; init; } = true;
+
+    public bool CheckBufferFirst { get; init; } = true;
 
     public T? Current { get; private set; }
 
@@ -30,7 +32,7 @@ public class InputProvider<T> : IEnumerator<T>, IEnumerable<T>
     public bool MoveNext()
     {
         // check if the converter has more in it's (potential) buffer before iterating the file stream.
-        if (this.converter(null, out T storedResult))
+        if (this.CheckBufferFirst && this.converter(null, out T storedResult))
         {
             this.Current = storedResult;
             return true;
