@@ -42,25 +42,7 @@ while (toProcess.Count > 0)
             PatchTile? prev = regionWorld.GetObjectAtOrNull(x - 1, y);
             PatchTile? current = regionWorld.GetObjectAtOrNull(x, y);
 
-            if (prev?.Region != regionChar && current?.Region != regionChar)
-                continue;
-
-            if (current?.Region == regionChar && prev?.Region != regionChar)
-            {
-                if (!verticalLinesInc.ContainsKey(x))
-                {
-                    verticalLinesInc[x] = [y];
-                    sides++;
-                }
-                else
-                {
-                    if (!verticalLinesInc[x].Contains(y - 1))
-                    {
-                        sides++;
-                    }
-                    verticalLinesInc[x].Add(y);
-                }
-            }
+            sides += IsNewEdge(regionChar, verticalLinesInc, x, y, prev, current) ? 1 : 0;
         }
 
         for (int x = regionWorld.MaxX; x >= regionWorld.MinX - 1; x--)
@@ -68,25 +50,7 @@ while (toProcess.Count > 0)
             PatchTile? prev = regionWorld.GetObjectAtOrNull(x + 1, y);
             PatchTile? current = regionWorld.GetObjectAtOrNull(x, y);
 
-            if (prev?.Region != regionChar && current?.Region != regionChar)
-                continue;
-
-            if (current?.Region == regionChar && prev?.Region != regionChar)
-            {
-                if (!verticalLinesDec.ContainsKey(x))
-                {
-                    verticalLinesDec[x] = [y];
-                    sides++;
-                }
-                else
-                {
-                    if (!verticalLinesDec[x].Contains(y - 1))
-                    {
-                        sides++;
-                    }
-                    verticalLinesDec[x].Add(y);
-                }
-            }
+            sides += IsNewEdge(regionChar, verticalLinesDec, x, y, prev, current) ? 1 : 0;
         }
     }
 
@@ -100,25 +64,7 @@ while (toProcess.Count > 0)
             PatchTile? prev = regionWorld.GetObjectAtOrNull(x, y - 1);
             PatchTile? current = regionWorld.GetObjectAtOrNull(x, y);
 
-            if (prev?.Region != regionChar && current?.Region != regionChar)
-                continue;
-
-            if (current?.Region == regionChar && prev?.Region != regionChar)
-            {
-                if (!horizontalLinesInc.ContainsKey(y))
-                {
-                    horizontalLinesInc[y] = [x];
-                    sides++;
-                }
-                else
-                {
-                    if (!horizontalLinesInc[y].Contains(x - 1))
-                    {
-                        sides++;
-                    }
-                    horizontalLinesInc[y].Add(x);
-                }
-            }
+            sides += IsNewEdge(regionChar, horizontalLinesInc, y, x, prev, current) ? 1 : 0;
         }
 
         for (int y = regionWorld.MaxY; y >= regionWorld.MinY - 1; y--)
@@ -126,37 +72,44 @@ while (toProcess.Count > 0)
             PatchTile? prev = regionWorld.GetObjectAtOrNull(x, y + 1);
             PatchTile? current = regionWorld.GetObjectAtOrNull(x, y);
 
-            if (prev?.Region != regionChar && current?.Region != regionChar)
-                continue;
-
-            if (current?.Region == regionChar && prev?.Region != regionChar)
-            {
-                if (!horizontalLinesDec.ContainsKey(y))
-                {
-                    horizontalLinesDec[y] = [x];
-                    sides++;
-                }
-                else
-                {
-                    if (!horizontalLinesDec[y].Contains(x - 1))
-                    {
-                        sides++;
-                    }
-                    horizontalLinesDec[y].Add(x);
-                }
-            }
+            sides += IsNewEdge(regionChar, horizontalLinesDec, y, x, prev, current) ? 1 : 0;
         }
     }
 
     sumPriceSides += region.Count * sides;
 
-    Console.WriteLine($"Size: {region.Count}, perimeter: {perimiter}, sides: {sides}");
+    //Console.WriteLine($"Size: {region.Count}, perimeter: {perimiter}, sides: {sides}");
     //Console.ReadKey();
 
 }
 
 Console.WriteLine($"Part 1: {sumPricePerimeter}");
 Console.WriteLine($"Part 2: {sumPriceSides}");
+
+static bool IsNewEdge(char regionChar, Dictionary<int, List<int>> lines, int linesKey, int linesValue, PatchTile? prev, PatchTile? current)
+{
+    if (prev?.Region != regionChar && current?.Region != regionChar)
+        return false;
+
+    if (current?.Region == regionChar && prev?.Region != regionChar)
+    {
+        if (!lines.ContainsKey(linesKey))
+        {
+            lines[linesKey] = [linesValue];
+            return true;
+        }
+        else
+        {
+            lines[linesKey].Add(linesValue);
+            if (!lines[linesKey].Contains(linesValue - 1))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 void GrabReachableTiles(PatchTile current, List<PatchTile> region, List<PatchTile> remaining)
 {
