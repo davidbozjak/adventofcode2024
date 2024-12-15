@@ -18,4 +18,16 @@ public static class EnumerableExtensions
     {
         return elements.GroupBy(w => w).OrderByDescending(w => w.Count()).Select(w => w.Key).First();
     }
+
+    public static Stack<T> ToStack<T>(this IEnumerable<T> elements)
+    {
+        var stack = new Stack<T>();
+
+        foreach (var element in elements)
+        {
+            stack.Push(element);
+        }
+
+        return stack;
+    }
 }

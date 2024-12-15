@@ -26,6 +26,14 @@ namespace SantasToolbox
             this.cachedNeighbours = new Cached<List<Tile>>(() => fillTraversibleNeighboursFunc(this).ToList());
         }
 
+        public Tile(Tile origTile, bool newIsTraversable, Point newPosition)
+        {
+            this.Position = newPosition;
+            this.IsTraversable = newIsTraversable;
+            this.cachedNeighbours = origTile.cachedNeighbours;
+            this.cachedNeighbours.Reset();
+        }
+
         public Tile(Tile origTile, bool newIsTraversable)
         {
             this.Position = origTile.Position;
