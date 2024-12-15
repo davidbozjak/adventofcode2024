@@ -44,4 +44,10 @@ public class SimpleWorld<T> : IWorld
 
     public T GetObjectAt(Point point)
         => this.spatialWorldObjects[point];
+
+    public T? GetObjectAtOrNull(int x, int y)
+        => this.GetObjectAtOrNull(new Point(x, y));
+
+    public T? GetObjectAtOrNull(Point point)
+        => this.spatialWorldObjects.ContainsKey(point) ? this.spatialWorldObjects[point] : default(T);
 }
