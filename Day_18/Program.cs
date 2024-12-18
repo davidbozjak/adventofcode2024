@@ -7,30 +7,43 @@ AgentState.obstacles = new UniqueFactory<(int, int), SimplePointWorldObject>(w =
 
 var part1Limit = 1024;
 
-for (int i = 0; i < part1Limit; i++)
+int numRuns = 0;
+
+Console.WriteLine($"Part 1: {Run(part1Limit).TotalCost}");
+
+Console.WriteLine($"Part 2: {intPairInput[DevideAndConquerSearch(part1Limit, intPairInput.Count)]} - total runs {numRuns}");
+
+
+int DevideAndConquerSearch(int min, int max)
 {
-    AgentState.obstacles.GetOrCreateInstance(intPairInput[i]);
-}
+    if (max - min <= 1)
+        return min;
 
-var stateAfter = Run();
+    int mid = (min + max) / 2;
 
-Console.WriteLine($"Part 1: {stateAfter.TotalCost}");
+    var result = Run(mid);
 
-for (int i = part1Limit; i < intPairInput.Count; i++)
-{
-    AgentState.obstacles.GetOrCreateInstance(intPairInput[i]);
-
-    stateAfter = Run();
-
-    if (stateAfter == null)
+    if (result == null)
     {
-        Console.WriteLine($"Part 2: {intPairInput[i]} [{i}]");
-        break;
+        return DevideAndConquerSearch(min, mid);
+    }
+    else
+    {
+        return DevideAndConquerSearch(mid, max);
     }
 }
 
-static AgentState? Run()
+AgentState? Run(int points)
 {
+    numRuns++;
+
+    AgentState.obstacles = new UniqueFactory<(int, int), SimplePointWorldObject>(w => new SimplePointWorldObject(w.Item1, w.Item2, '#'));
+
+    for (int i = 0; i < points; i++)
+    {
+        AgentState.obstacles.GetOrCreateInstance(intPairInput[i]);
+    }
+
     var startState = new AgentState(new Point(0, 0), -1);
     var endState = new AgentState(new Point(70, 70), 0);
 
