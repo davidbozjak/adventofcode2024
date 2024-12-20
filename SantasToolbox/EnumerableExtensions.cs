@@ -30,4 +30,36 @@ public static class EnumerableExtensions
 
         return stack;
     }
+
+    public static int IndexOfFirst<T>(this IEnumerable<T> elements, Func<T, bool> condition)
+    {
+        var index = 0;
+
+        foreach (var element in elements)
+        {
+            if (condition(element))
+            {
+                return index;
+            }
+            index++;
+        }
+
+        return -1;
+    }
+
+    public static int IndexOfFirst<T>(this IEnumerable<T> elements, T element)
+    {
+        var index = 0;
+
+        foreach (var e in elements)
+        {
+            if (element.Equals(e))
+            {
+                return index;
+            }
+            index++;
+        }
+
+        return -1;
+    }
 }

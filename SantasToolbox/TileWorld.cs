@@ -2,7 +2,7 @@
 
 namespace SantasToolbox
 {
-    [System.Diagnostics.DebuggerDisplay("({Position.X}, {Position.Y})")]
+    [System.Diagnostics.DebuggerDisplay("({Position.X}, {Position.Y}){CharRepresentation}")]
     public class Tile : IWorldObject, INode, IEquatable<Tile>
     {
         public Point Position { get; }
@@ -14,22 +14,34 @@ namespace SantasToolbox
         public bool IsTraversable { get; }
 
         private readonly Cached<List<Tile>> cachedNeighbours;
+        private readonly Cached<List<Point>> cachedAdjacentPositions;
 
         public IEnumerable<Tile> TraversibleNeighbours => this.cachedNeighbours.Value;
+
+        public IEnumerable<Point> AdjacentPositions => this.cachedAdjacentPositions.Value;
 
         public virtual int Cost => 1;
 
         public Tile(int x, int y, bool isTraversable, Func<Tile, IEnumerable<Tile>> fillTraversibleNeighboursFunc)
         {
-            Position = new Point(x, y);
+            var p = new Point(x, y);
+            Position = p;
             this.IsTraversable = isTraversable;
             this.cachedNeighbours = new Cached<List<Tile>>(() => fillTraversibleNeighboursFunc(this).ToList());
+            this.cachedAdjacentPositions = new Cached<List<Point>>(() =>
+                [
+                p.Up(),
+                p.Down(),
+                p.Left(),
+                p.Right()
+                ]);
         }
 
         public Tile(Tile origTile, bool newIsTraversable, Point newPosition)
         {
             this.Position = newPosition;
             this.IsTraversable = newIsTraversable;
+            this.cachedAdjacentPositions = origTile.cachedAdjacentPositions;
             this.cachedNeighbours = origTile.cachedNeighbours;
             this.cachedNeighbours.Reset();
         }
@@ -37,6 +49,7 @@ namespace SantasToolbox
         public Tile(Tile origTile, bool newIsTraversable)
         {
             this.Position = origTile.Position;
+            this.cachedAdjacentPositions = origTile.cachedAdjacentPositions;
             this.cachedNeighbours = origTile.cachedNeighbours;
             this.cachedNeighbours.Reset();
             this.IsTraversable = newIsTraversable;
@@ -45,6 +58,7 @@ namespace SantasToolbox
         public Tile(Tile origTile, Point newPosition)
         {
             this.Position = newPosition;
+            this.cachedAdjacentPositions = origTile.cachedAdjacentPositions;
             this.cachedNeighbours = origTile.cachedNeighbours;
             this.cachedNeighbours.Reset();
             this.IsTraversable = origTile.IsTraversable;
