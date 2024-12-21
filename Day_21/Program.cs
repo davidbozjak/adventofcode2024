@@ -1,4 +1,6 @@
-﻿var codes = new StringInputProvider("Input.txt").ToList();
+﻿using System.IO;
+
+var codes = new StringInputProvider("Input.txt").ToList();
 
 //tests for sample input:
 //var o1 = TypeInstructionDirKeyboard("v<<A>>^AvA^A<v<A>A<A>>^AvA^<A>Av<A<A>>^AvA^<A>AvA^Av<A^>AA<A>A<v<A>A^>AAA<A>vA^A");
@@ -14,61 +16,124 @@
 //Console.WriteLine(or);
 //Console.WriteLine(or_sample);
 
-int sum = 0;
+long sum = 0;
 
 long globalHitCount = 0;
 
 Dictionary<string, HashSet<string>> memBaseInstructions = new();
-Dictionary<(string, string), string> memSubstrings = new();
-Dictionary<string, int> memMoveCount = new();
+Dictionary<string, string> memSubstrings = new();
+Dictionary<string, long> memMoveCount = new();
 
 foreach (var code in codes)
 {
-    var instructions = TransformCode(code, 25);
+    var instructions = TransformCode(code, 2);
 
     var complexity = GetCodeComplexity(code, instructions);
 
-    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Code {code} complexity: {complexity}");
+    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Code {code} Length: {instructions} Final Complexity: {complexity}");
 
     sum += complexity;
 }
 
 Console.WriteLine($"Part 1: {sum}");
 
-string TransformCode(string code, int repeatsOfDirKeyboard)
+long TransformCode(string code, int repeatsOfDirKeyboard)
 {
     Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Starting new code: {code}");
 
-    var paths1 = GetInstructionsForKeyboard_9(code).ToHashSet();
-    var min1 = paths1.Min(w => w.Length);
-    paths1 = paths1.Where(w => w.Length <= min1).ToHashSet();
+    var paths = GetInstructionsForKeyboard_9(code).ToHashSet();
 
-    var next = new List<string>();
+    //var tmp = paths.Select(w => new { Str = w, MovesNeeded = GetMovesCountForStr(w) }).OrderBy(w => w.MovesNeeded).ToList();
 
-    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Found {paths1.Count} unique possibilities for step 1");
+    //var path = tmp.Select(w => w.Str).First();
 
-    for (int i = 0; i < repeatsOfDirKeyboard; i++)
+    long best = long.MaxValue;
+
+    foreach (var path in paths)
     {
-        next = new List<string>();
+        long totalLength = 0;
 
-        foreach (var path in paths1)
+        var parts = path.Split('A');
+        parts = parts[..^1];
+
+        //string current = "";
+
+        //string tmpWhole = "";
+
+        var dict = parts.Select(w => w + 'A').GroupBy(w => w).ToDictionary(w => w.Key, w => (long)w.Count());
+
+        for (int i = 0; i < repeatsOfDirKeyboard; i++)
         {
-            var paths2 = GetInstructionsForDirKeyboard(path);
-            next.Add(paths2);
+            var newDict = new Dictionary<string, long>();
+
+            foreach (var part in dict.Keys)
+            {
+                var output = GetInstructionsForDirKeyboard(part);
+
+                //if (!newDict.ContainsKey(output))
+                //{
+                //    newDict[output] = 0;
+                //}
+                //newDict[output] += dict[part];
+
+                var outputParts = output.Split('A');
+                outputParts = outputParts[..^1].Select(w => w + 'A').ToArray();
+
+                foreach (var outputPart in outputParts)
+                {
+                    if (!newDict.ContainsKey(outputPart))
+                    {
+                        newDict[outputPart] = 0;
+                    }
+                    newDict[outputPart] += dict[part];
+                }
+            }
+
+            dict = newDict;
+
+
+            //Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Starting new iteration: {i}, length: {current.Length}");
+            //current = GetInstructionsForDirKeyboard(current);
         }
 
-        var min2 = next.Min(w => w.Length);
-        paths1 = next.Where(w => w.Length <= min2).ToHashSet();
-        
-        Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Found {paths1.Count} unique possibilities for step {i + 2} all of length {min2} [Global hit count: {globalHitCount}]");
+        totalLength = dict.Sum(w => w.Value * w.Key.Length);
+
+        //foreach (var part in parts)
+        //{
+        //    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Starting new part: {part}");
+
+        //    current = part + 'A';
+            
+
+            
+        //    totalLength += current.Length;
+        //    tmpWhole += current;
+
+        //    Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Done with part, total part length: {current.Length}, total length: {totalLength}");
+        //}
+
+//#if !RELEASE
+//        for (int i = 0; i < repeatsOfDirKeyboard; i++)
+//        {
+//            tmpWhole = TypeInstructionDirKeyboard(tmpWhole);
+//        }
+
+//        if (tmpWhole != path)
+//            throw new Exception();
+//#endif
+
+        if (totalLength < best)
+        {
+            best = totalLength;
+        }
     }
 
-    return next.OrderBy(w => w.Length).First();
+    return best;
 }
 
-int GetCodeComplexity(string code, string input)
+long GetCodeComplexity(string code, long inputLength)
 {
-    return input.Length * int.Parse(code[..^1]);
+    return inputLength * int.Parse(code[..^1]);
 }
 
 IEnumerable<string> GetInstructionsForKeyboard_9(string desiredOutput)
@@ -92,38 +157,102 @@ IEnumerable<string> GetInstructionsForKeyboard_9(string desiredOutput)
     }
 }
 
+long GetMovesCountForStr(string output)
+{
+    if (!memMoveCount.ContainsKey(output))
+    {
+        memMoveCount[output] = GetMovesCountForStrInternal(output);
+    }
+    else
+    {
+        globalHitCount++;
+    }
+    return memMoveCount[output];
+
+    long GetMovesCountForStrInternal(string output)
+    {
+        int minMoves = 0;
+        for (int i = 1; i < output.Length; i++)
+        {
+            if (output[i] == output[i - 1])
+            {
+                minMoves++;
+            }
+            else
+            {
+                if (output[i] == 'A')
+                {
+                    if ((new char[] { '1', '>' }).Contains(output[i - 1])) minMoves += 2;
+                    else minMoves += 3;
+                }
+                else if (output[i] == '^')
+                {
+                    if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                    else minMoves += 3;
+                }
+                else if (output[i] == 'v')
+                {
+                    if ((new char[] { '^', '<', '>' }).Contains(output[i - 1])) minMoves += 2;
+                    else minMoves += 3;
+                }
+                else if (output[i] == '>')
+                {
+                    if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                    else minMoves += 3;
+                }
+                else if (output[i] == '<')
+                {
+                    if (output[i - 1] == 'v') minMoves += 2;
+                    else if ((new char[] { '^', '>' }).Contains(output[i - 1])) minMoves += 2;
+                    else minMoves += 4;
+                }
+                else throw new Exception();
+            }
+        }
+        return minMoves;
+    }
+}
+
 string GetInstructionsForDirKeyboard(string desiredOutput)
 {
-    //split at "A" as only length matters
-    var parts = desiredOutput.Split('A');
-    parts = parts[..^1];
-
-    string current = string.Empty;
-
-    for (int i = parts.Length - 1; i >= 0; i--)
+    if (!memSubstrings.ContainsKey(desiredOutput))
     {
-        var desiredSubOutput = parts[i] + 'A';
-
-        var paths = FindPathsCachedDirKeyboard(desiredSubOutput);
-
-        //var newList = new HashSet<string>();
-
-        //foreach (var path in paths)
-        //{
-        //    var output = TypeInstructionDirKeyboard(path);
-
-        //    if (output != desiredSubOutput)
-        //        throw new Exception();
-
-        //    newList.Add(path + current);
-        //}
-
-        var tmp = paths.Select(w => new { Str = w, MovesNeeded = GetMovesCountForStr(w) }).OrderBy(w => w.MovesNeeded).ToList();
-
-        current = tmp.Select(w => w.Str).First() + current;
+        memSubstrings[desiredOutput] = GetInstructionsForDirKeyboardInternal(desiredOutput);
     }
+    return memSubstrings[desiredOutput];
 
-    // test the output before removing
+    string GetInstructionsForDirKeyboardInternal(string desiredOutput)
+    {
+        //split at "A" as only length matters
+        var parts = desiredOutput.Split('A');
+        parts = parts[..^1];
+
+        string current = string.Empty;
+
+        for (int i = parts.Length - 1; i >= 0; i--)
+        {
+            var desiredSubOutput = parts[i] + 'A';
+
+            var paths = FindPathsCachedDirKeyboard(desiredSubOutput);
+
+            //var newList = new HashSet<string>();
+
+            //foreach (var path in paths)
+            //{
+            //    var output = TypeInstructionDirKeyboard(path);
+
+            //    if (output != desiredSubOutput)
+            //        throw new Exception();
+
+            //    newList.Add(path + current);
+            //}
+
+            var tmp = paths.Select(w => new { Str = w, MovesNeeded = GetMovesCountForStr(w) }).OrderBy(w => w.MovesNeeded).ToList();
+
+            current = tmp.Select(w => w.Str).First() + current;
+        }
+
+        // test the output before removing
 #if !RELEASE
     var output = TypeInstructionDirKeyboard(current);
 
@@ -131,63 +260,9 @@ string GetInstructionsForDirKeyboard(string desiredOutput)
         throw new Exception();
 #endif
 
-    return current;
-
-    int GetMovesCountForStr(string output)
-    {
-        if (!memMoveCount.ContainsKey(output))
-        {
-            memMoveCount[output] = GetMovesCountForStrInternal(output);
-        }
-        else
-        {
-            globalHitCount++;
-        }
-        return memMoveCount[output];
-
-        int GetMovesCountForStrInternal(string output)
-        {
-            int minMoves = 0;
-            for (int i = 1; i < output.Length; i++)
-            {
-                if (output[i] == output[i - 1])
-                {
-                    minMoves++;
-                }
-                else
-                {
-                    if (output[i] == 'A')
-                    {
-                        if ((new char[] { '1', '>' }).Contains(output[i - 1])) minMoves += 2;
-                        else minMoves += 3;
-                    }
-                    else if (output[i] == '^')
-                    {
-                        if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
-                        else minMoves += 3;
-                    }
-                    else if (output[i] == 'v')
-                    {
-                        if ((new char[] { '^', '<', '>' }).Contains(output[i - 1])) minMoves += 2;
-                        else minMoves += 3;
-                    }
-                    else if (output[i] == '>')
-                    {
-                        if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
-                        else minMoves += 3;
-                    }
-                    else if (output[i] == '<')
-                    {
-                        if (output[i - 1] == 'v') minMoves += 2;
-                        else if ((new char[] { '^', '>' }).Contains(output[i - 1])) minMoves += 2;
-                        else minMoves += 4;
-                    }
-                    else throw new Exception();
-                }
-            }
-            return minMoves;
-        }
+        return current;
     }
+    
 
     //if (!memSubstrings.ContainsKey(desiredOutput))
     //{
