@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-var codes = new StringInputProvider("Input.txt").ToList();
+﻿var codes = new StringInputProvider("Input.txt").ToList();
 
 //tests for sample input:
 //var o1 = TypeInstructionDirKeyboard("v<<A>>^AvA^A<v<A>A<A>>^AvA^<A>Av<A<A>>^AvA^<A>AvA^Av<A^>AA<A>A<v<A>A^>AAA<A>vA^A");
@@ -17,8 +15,6 @@ var codes = new StringInputProvider("Input.txt").ToList();
 //Console.WriteLine(or_sample);
 
 long sum = 0;
-
-long globalHitCount = 0;
 
 Dictionary<string, HashSet<string>> memBaseInstructions = new();
 Dictionary<string, string> memSubstrings = new();
@@ -91,7 +87,6 @@ long TransformCode(string code, int repeatsOfDirKeyboard)
 
             dict = newDict;
 
-
             //Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Starting new iteration: {i}, length: {current.Length}");
             //current = GetInstructionsForDirKeyboard(current);
         }
@@ -163,18 +158,15 @@ long GetMovesCountForStr(string output)
     {
         memMoveCount[output] = GetMovesCountForStrInternal(output);
     }
-    else
-    {
-        globalHitCount++;
-    }
     return memMoveCount[output];
 
     long GetMovesCountForStrInternal(string output)
     {
         int minMoves = 0;
-        for (int i = 1; i < output.Length; i++)
+        for (int i = 0; i < output.Length; i++)
         {
-            if (output[i] == output[i - 1])
+            char prev = i > 0 ? output[i - 1] : 'A';
+            if (output[i] == prev)
             {
                 minMoves++;
             }
@@ -182,28 +174,29 @@ long GetMovesCountForStr(string output)
             {
                 if (output[i] == 'A')
                 {
-                    if ((new char[] { '1', '>' }).Contains(output[i - 1])) minMoves += 2;
-                    else minMoves += 3;
+                    if ((new char[] { '^', '>' }).Contains(prev)) minMoves += 2;
+                    else if (prev == 'v') minMoves += 3;
+                    else minMoves += 4;
                 }
                 else if (output[i] == '^')
                 {
-                    if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                    if ((new char[] { 'A', 'v' }).Contains(prev)) minMoves += 2;
                     else minMoves += 3;
                 }
                 else if (output[i] == 'v')
                 {
-                    if ((new char[] { '^', '<', '>' }).Contains(output[i - 1])) minMoves += 2;
+                    if ((new char[] { '^', '<', '>' }).Contains(prev)) minMoves += 2;
                     else minMoves += 3;
                 }
                 else if (output[i] == '>')
                 {
-                    if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                    if ((new char[] { 'A', 'v' }).Contains(prev)) minMoves += 2;
                     else minMoves += 3;
                 }
                 else if (output[i] == '<')
                 {
-                    if (output[i - 1] == 'v') minMoves += 2;
-                    else if ((new char[] { '^', '>' }).Contains(output[i - 1])) minMoves += 2;
+                    if (prev == 'v') minMoves += 2;
+                    else if ((new char[] { '^', '>' }).Contains(prev)) minMoves += 3;
                     else minMoves += 4;
                 }
                 else throw new Exception();
