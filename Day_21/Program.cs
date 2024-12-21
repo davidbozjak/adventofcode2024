@@ -14,15 +14,17 @@
 //Console.WriteLine(or);
 //Console.WriteLine(or_sample);
 
-
-
 int sum = 0;
 
-Dictionary<string, HashSet<string>> memSubstrings = new();
+long globalHitCount = 0;
+
+Dictionary<string, HashSet<string>> memBaseInstructions = new();
+Dictionary<(string, string), string> memSubstrings = new();
+Dictionary<string, int> memMoveCount = new();
 
 foreach (var code in codes)
 {
-    var instructions = TransformCode(code, 2);
+    var instructions = TransformCode(code, 25);
 
     var complexity = GetCodeComplexity(code, instructions);
 
@@ -51,14 +53,14 @@ string TransformCode(string code, int repeatsOfDirKeyboard)
 
         foreach (var path in paths1)
         {
-            var paths2 = GetInstructionsForDirKeyboard(path).ToList();
-            next.AddRange(paths2);
+            var paths2 = GetInstructionsForDirKeyboard(path);
+            next.Add(paths2);
         }
 
         var min2 = next.Min(w => w.Length);
         paths1 = next.Where(w => w.Length <= min2).ToHashSet();
         
-        Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Found {paths1.Count} unique possibilities for step {i + 2}");
+        Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: Found {paths1.Count} unique possibilities for step {i + 2} all of length {min2} [Global hit count: {globalHitCount}]");
     }
 
     return next.OrderBy(w => w.Length).First();
@@ -90,65 +92,233 @@ IEnumerable<string> GetInstructionsForKeyboard_9(string desiredOutput)
     }
 }
 
-IEnumerable<string> GetInstructionsForDirKeyboard(string desiredOutput)
+string GetInstructionsForDirKeyboard(string desiredOutput)
 {
     //split at "A" as only length matters
     var parts = desiredOutput.Split('A');
     parts = parts[..^1];
 
-    var comboList = new HashSet<string>();
+    string current = string.Empty;
 
-    foreach (var part in parts)
+    for (int i = parts.Length - 1; i >= 0; i--)
     {
-        var desiredSubOutput = part + 'A';
+        var desiredSubOutput = parts[i] + 'A';
 
         var paths = FindPathsCachedDirKeyboard(desiredSubOutput);
 
-        var newList = new List<string>();
+        //var newList = new HashSet<string>();
 
-        foreach (var path in paths)
+        //foreach (var path in paths)
+        //{
+        //    var output = TypeInstructionDirKeyboard(path);
+
+        //    if (output != desiredSubOutput)
+        //        throw new Exception();
+
+        //    newList.Add(path + current);
+        //}
+
+        var tmp = paths.Select(w => new { Str = w, MovesNeeded = GetMovesCountForStr(w) }).OrderBy(w => w.MovesNeeded).ToList();
+
+        current = tmp.Select(w => w.Str).First() + current;
+    }
+
+    // test the output before removing
+#if !RELEASE
+    var output = TypeInstructionDirKeyboard(current);
+
+    if (output != desiredOutput)
+        throw new Exception();
+#endif
+
+    return current;
+
+    int GetMovesCountForStr(string output)
+    {
+        if (!memMoveCount.ContainsKey(output))
         {
-            var output = TypeInstructionDirKeyboard(path);
-
-            if (output != desiredSubOutput)
-                throw new Exception();
-
-            newList.Add(path);
-        }
-
-        var newCombo = new HashSet<string>();
-
-        if (comboList.Any())
-        {
-            foreach (var combo in comboList)
-            {
-                foreach (var path in newList)
-                {
-                    newCombo.Add(combo + path);
-                }
-            }
+            memMoveCount[output] = GetMovesCountForStrInternal(output);
         }
         else
         {
-            foreach (var path in newList)
-            {
-                newCombo.Add(path);
-            }
+            globalHitCount++;
         }
+        return memMoveCount[output];
 
-        comboList = newCombo;
+        int GetMovesCountForStrInternal(string output)
+        {
+            int minMoves = 0;
+            for (int i = 1; i < output.Length; i++)
+            {
+                if (output[i] == output[i - 1])
+                {
+                    minMoves++;
+                }
+                else
+                {
+                    if (output[i] == 'A')
+                    {
+                        if ((new char[] { '1', '>' }).Contains(output[i - 1])) minMoves += 2;
+                        else minMoves += 3;
+                    }
+                    else if (output[i] == '^')
+                    {
+                        if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                        else minMoves += 3;
+                    }
+                    else if (output[i] == 'v')
+                    {
+                        if ((new char[] { '^', '<', '>' }).Contains(output[i - 1])) minMoves += 2;
+                        else minMoves += 3;
+                    }
+                    else if (output[i] == '>')
+                    {
+                        if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+                        else minMoves += 3;
+                    }
+                    else if (output[i] == '<')
+                    {
+                        if (output[i - 1] == 'v') minMoves += 2;
+                        else if ((new char[] { '^', '>' }).Contains(output[i - 1])) minMoves += 2;
+                        else minMoves += 4;
+                    }
+                    else throw new Exception();
+                }
+            }
+            return minMoves;
+        }
     }
 
-    //test them all just now
-    foreach (var final in comboList)
-    {
-        var output = TypeInstructionDirKeyboard(final);
+    //if (!memSubstrings.ContainsKey(desiredOutput))
+    //{
+    //    memSubstrings[desiredOutput] = GetInstructionsForDirKeyboardInternal(desiredOutput);
+    //}
 
-        if (output != desiredOutput)
-            throw new Exception();
-    }
+    //return memSubstrings[desiredOutput];
 
-    return comboList;
+    //string GetInstructionsForDirKeyboardInternal(string desiredOutput)
+    //{
+    //if (desiredOutput.Length == 0) 
+    //    return string.Empty;
+
+    //var currentPart = desiredOutput.IndexOf('A') + 1;
+    //var desiredSubOutput = desiredOutput[..currentPart];
+
+    //var nextParts = GetInstructionsForDirKeyboard(desiredOutput[currentPart..]);
+
+    //var paths = FindPathsCachedDirKeyboard(desiredSubOutput);
+
+    //var newList = new HashSet<string>();
+
+    //foreach (var path in paths)
+    //{
+    //    var output = TypeInstructionDirKeyboard(path);
+
+    //    if (output != desiredSubOutput)
+    //        throw new Exception();
+
+    //    newList.Add(path + nextParts);
+    //}
+
+    ////simply select shortest?
+
+    //var tmp = newList.Select(w => new { Str = w, MovesNeeded = GetMovesCountForStr(w) }).OrderBy(w => w.MovesNeeded).ToList(); ;
+
+    //return tmp.Select(w => w.Str).First();
+
+    //int GetMovesCountForStr(string output)
+    //{
+    //    int minMoves = 0;
+    //    for (int i = 1; i < output.Length; i++)
+    //    {
+    //        if (output[i] == output[i - 1])
+    //        {
+    //            minMoves++;
+    //        }
+    //        else
+    //        {
+    //            if (output[i] == 'A')
+    //            {
+    //                if ((new char[] { '1', '>' }).Contains(output[i - 1])) minMoves += 2;
+    //                else minMoves += 3;
+    //            }
+    //            else if (output[i] == '^')
+    //            {
+    //                if ((new char[] { 'A', 'v' }).Contains(output[i - 1])) minMoves += 2;
+    //                else minMoves += 3;
+    //            }
+    //            else if (output[i] == 'v')
+    //            {
+    //                if ((new char[] { '^', '<', '>' }).Contains(output[i - 1])) minMoves += 2;
+    //                else minMoves += 3;
+    //            }
+    //            else if (output[i] == '>')
+    //            {
+    //                if ((new char[] { 'A', 'v'}).Contains(output[i - 1])) minMoves += 2;
+    //                else minMoves += 3;
+    //            }
+    //            else if (output[i] == '<')
+    //            {
+    //                if (output[i - 1] == 'v') minMoves += 2;
+    //                else if ((new char[] { '^', '>' }).Contains(output[i - 1])) minMoves += 2;
+    //                else minMoves += 4;
+    //            }
+    //            else throw new Exception();
+    //        }
+    //    }
+    //    return minMoves;
+    //}
+
+    ////split at "A" as only length matters
+    //var parts = desiredOutput.Split('A');
+    //parts = parts[..^1];
+
+    //var comboList = new HashSet<string>();
+
+
+
+    //foreach (var )
+
+    //foreach (var part in parts)
+    //{
+    //    var desiredSubOutput = part + 'A';
+
+
+
+    //    var newCombo = new HashSet<string>();
+
+    //    if (comboList.Any())
+    //    {
+    //        foreach (var combo in comboList)
+    //        {
+    //            foreach (var path in newList)
+    //            {
+    //                newCombo.Add(combo + path);
+    //            }
+    //        }
+    //    }
+    //    else
+    //    {
+    //        foreach (var path in newList)
+    //        {
+    //            newCombo.Add(path);
+    //        }
+    //    }
+
+    //    comboList = newCombo;
+    //}
+
+    ////test them all just now
+    //foreach (var final in comboList)
+    //{
+    //    var output = TypeInstructionDirKeyboard(final);
+
+    //    if (output != desiredOutput)
+    //        throw new Exception();
+    //}
+
+    //return comboList;
+    //}
 }
 
 static string TypeInstructionDirKeyboard(string instruction)
@@ -262,7 +432,7 @@ static string TypeInstructionKeyboard9(string instruction)
 
 HashSet<string> FindPathsCachedDirKeyboard(string desiredOutput)
 {
-    if (!memSubstrings.ContainsKey(desiredOutput))
+    if (!memBaseInstructions.ContainsKey(desiredOutput))
     {
         var startSate = new RobotArmKeyDirboardState(KeyboardDirKeys.KeyA, "", "");
         var endState = new RobotArmKeyDirboardState(KeyboardDirKeys.KeyA, "", desiredOutput);
@@ -272,10 +442,10 @@ HashSet<string> FindPathsCachedDirKeyboard(string desiredOutput)
             .Select(w => w.Last().PathToHere)
             .ToHashSet();
 
-        memSubstrings[desiredOutput] = paths;
+        memBaseInstructions[desiredOutput] = paths;
     }
 
-    return memSubstrings[desiredOutput];
+    return memBaseInstructions[desiredOutput];
 }
 
 static IEnumerable<List<T>> FindPaths<T>(T start, T goal, Func<T, int?> GetHeuristicCost, Func<T, IEnumerable<T>> GetNeighbours)
