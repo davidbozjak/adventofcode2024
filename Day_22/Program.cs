@@ -36,6 +36,8 @@ Console.WriteLine($"Part 1: {sum}");
 
 long bestSumBananas = long.MinValue;
 
+List<(int, int, int, int)> sequences = new();
+
 for (int diff1 = -9; diff1 < 10; diff1++)
 {
     for (int diff2 = -9; diff2 < 10; diff2++)
@@ -44,17 +46,24 @@ for (int diff1 = -9; diff1 < 10; diff1++)
         {
             for (int diff4 = -9; diff4 < 10; diff4++)
             {
-                var sumBananas = GetBananasForSequence(diff1, diff2, diff3, diff4);
-
-                if (sumBananas > bestSumBananas)
-                {
-                    bestSumBananas = sumBananas;
-                }
+                sequences.Add((diff1, diff2, diff3, diff4));
             }
         }
     }
 }
 
+Parallel.For(0, sequences.Count, i =>
+{
+    var sequence = sequences[i];
+
+    var sumBananas = GetBananasForSequence(sequence.Item1, sequence.Item2, sequence.Item3, sequence.Item4);
+
+    if (sumBananas > bestSumBananas)
+    {
+        bestSumBananas = sumBananas;
+        Console.WriteLine($"{DateTime.Now.ToShortTimeString()}: New best found {bestSumBananas} for sequence ({sequence.Item1},{sequence.Item2},{sequence.Item3},{sequence.Item4})");
+    }
+});
 
 
 Console.WriteLine($"Part 2: {bestSumBananas}");
