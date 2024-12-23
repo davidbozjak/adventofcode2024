@@ -81,18 +81,13 @@ void FindCliques(HashSet<Computer> R, HashSet<Computer> P, HashSet<Computer> X, 
 }
 
 [System.Diagnostics.DebuggerDisplay("{Name} - {ConnectedComputers.Count}")]
-class Computer
+class Computer (string name)
 {
     private readonly HashSet<Computer> connectedComputers = new();
 
-    public string Name { get; }
-
     public IReadOnlyCollection<Computer> ConnectedComputers => this.connectedComputers.ToHashSet();
 
-    public Computer(string name)
-    {
-        this.Name = name;
-    }
+    public string Name => name;
 
     public void AddConnection(Computer computer)
     {
