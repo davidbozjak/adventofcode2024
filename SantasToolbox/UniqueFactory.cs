@@ -24,6 +24,14 @@ public class UniqueFactory<T, U>
         return this.allCreatedInstances[identifier];
     }
 
+    public U GetInstanceOrThrow(T identifier)
+    {
+        if (!InstanceForIdentifierExists(identifier)) 
+            throw new ArgumentException("Value for this identifier does not exist");
+
+        return this.allCreatedInstances[identifier];
+    }
+
     public bool InstanceForIdentifierExists(T identifier)
         => this.allCreatedInstances.ContainsKey(identifier);
 
